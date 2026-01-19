@@ -170,11 +170,9 @@
   </div>
 
 </div>
-
 <script>
 const params = new URLSearchParams(window.location.search);
 
-// Fill the read-only fields
 document.getElementById("applicantName").innerText =
   params.get("applicantName") || "—";
 
@@ -189,44 +187,58 @@ document.getElementById("recommenderName").innerText =
 
 document.getElementById("recommenderDept").innerText =
   params.get("recommenderDept") || "—";
+</script>
+<script>
+const form = document.getElementById("recForm");
 
-// Handle form submission WITHOUT fetch (CORS-safe method)
-document.getElementById("recForm").addEventListener("submit", function (e) {
-  e.preventDefault();
+form.addEventListener("submit", async function(event) {
+  event.preventDefault();
 
-  const status = document.querySelector('input[name="status"]:checked').value;
+  const params = new URLSearchParams(window.location.search);
+  const rowId = params.get("rowId");
+
+  if (!rowId) {
+    alert("Missing rowId in URL.");
+    return;
+  }
+
+  const status = document.querySelector('input[name="status"]:checked')?.value;
   const reason = document.querySelector('textarea[name="reason"]').value;
 
-  // Create a hidden form to POST data
-  const form = document.createElement("form");
-  form.method = "POST";
-  form.action = "https://script.google.com/macros/s/AKfycbwh-Wz2tIzagz07BUVW44X6Tzo4AqYdaX7Im8NJPIf1mOSiUNJVYdvyHc37kILgW4iT/exec";
+  if (!status || !reason) {
+    alert("Please select a recommendation and write a reason.");
+    return;
+  }
 
-  const fields = {
-    rowId: params.get("rowId"),
-    applicantName: params.get("applicantName"),
-    applicantDept: params.get("applicantDept"),
-    program: params.get("program"),
-    recommenderName: params.get("recommenderName"),
-    recommenderDept: params.get("recommenderDept"),
-    recommenderEmail: params.get("recommenderEmail"),
+  const payload = {
+    rowId: rowId,
     recommendation: status,
     reason: reason
   };
 
-  for (const key in fields) {
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = key;
-    input.value = fields[key];
-    form.appendChild(input);
-  }
+  try {
+    const res = await fetch(
+      "https://script.google.com/macros/s/AKfycby91ftUExjdJ2Gw1DwsPWWjFvVzWMsPE7N0QiYwPLBxhl5a8HPx64izoFxiiD4oodsUmA/exec",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }
+    );
 
-  document.body.appendChild(form);
-  form.submit(); // This WILL work with Apps Script
+    const text = await res.text();
+    console.log("Server response:", text);
+
+    alert("Recommendation submitted successfully!");
+
+  } catch (err) {
+    alert("Error sending data: " + err.message);
+  }
 });
 </script>
 
+
 </body>
 </html>
+
 
